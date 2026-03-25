@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>🦞 霸王龙虾 - ADHD 任务管理</title>
+ <style>
+ * { margin: 0; padding: 0; box-sizing: border-box; }
+ :root { --bg: #1a1a2e; --card: #16213e; --primary: #e94560; --secondary: #f59e0b; --text: #eaeaea; --text-dim: #888; --success: #4ade80; --accent: #0f3460; --pending-bg: #2d2d44; }
+ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+ .container { max-width: 600px; margin: 0 auto; }
+ header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+ h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+ .streak { background: var(--primary); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+ .mode-toggle { display: flex; gap: 10px; margin-bottom: 20px; }
+ .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; background: var(--card); color: var(--text-dim); cursor: pointer; font-size: 1rem; transition: all 0.3s; }
+ .mode-btn.active { background: var(--primary); color: white; }
+ .pending-section { background: var(--pending-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-left: 4px solid var(--secondary); }
+ .pending-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+ .pending-title { font-size: 1.1rem; color: var(--secondary); display: flex; align-items: center; gap: 8px; }
+ .pending-count { background: var(--secondary); color: #000; padding: 2px 10px; border-radius: 10px; font-size: 0.85rem; font-weight: bold; }
+ .pending-hint { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px; }
+ .task-list { display: flex; flex-direction: column; gap: 15px; }
+ .section-title { font-size: 1rem; color: var(--text-dim); margin: 20px 0 15px 0; display: flex; align-items: center; gap: 8px; }
+ .task-card { background: var(--card); border-radius: 15px; padding: 20px; display: flex; align-items: center; gap: 15px; transition: transform 0.2s; }
+ .task-card:hover { transform: translateX(5px); }
+ .task-checkbox { width: 30px; height: 30px; border: 3px solid var(--primary); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; }
+ .task-checkbox.checked { background: var(--success); border-color: var(--success); }
+ .task-checkbox.checked::after { content: '✓'; color: white; font-weight: bold; }
+ .task-content { flex: 1; }
+ .task-title { font-size: 1.1rem; margin-bottom: 5px; }
+ .task-time { color: var(--text-dim); font-size: 0.85rem; }
+ .task-actions { display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s; }
+ .task-card:hover .task-actions { opacity: 1; }
+ .task-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 5px; border-radius: 5px; transition: background 0.2s; }
+ .task-btn:hover { background: var(--accent); }
+ .task-btn.schedule { color: var(--secondary); }
+ .task-delete { color: #ef4444; }
+ .add-task { position: fixed; bottom: 30px; right: 30px; }
+ .add-btn { width: 70px; height: 70px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 2rem; cursor: pointer; box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4); transition: transform 0.2s; }
+ .add-btn:hover { transform: scale(1.1); }
+ .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 100; }
+ .modal.show { display: flex; }
+ .modal-content { background: var(--card); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; }
+ .modal h2 { margin-bottom: 20px; }
+ .form-group { margin-bottom: 20px; }
+ .form-group label { display: block; margin-bottom: 8px; color: var(--text-dim); }
+ .form-group input { width: 100%; padding: 15px; border: none; border-radius: 10px; background: var(--accent); color: var(--text); font-size: 1rem; }
+ .form-actions { display: flex; gap: 10px; }
+ .form-actions button { flex: 1; padding: 15px; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer; }
+ .btn-cancel { background: var(--accent); color: var(--text); }
+ .btn-submit { background: var(--primary); color: white; }
+ .calendar { background: var(--card); border-radius: 15px; padding: 20px; margin-bottom: 20px; }
+ .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+ .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+ .calendar-day { padding: 10px; border-radius: 8px; }
+ .calendar-day.has-task { background: var(--primary); }
+ .calendar-day.today { border: 2px solid var(--primary); }
+ .empty-state { text-align: center; padding: 30px; color: var(--text-dim); }
+ @keyframes celebrate { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+ .celebrate { animation: celebrate 0.5s ease; }
+ @media (max-width: 480px) { .add-task { bottom: 20px; right: 20px; } .add-btn { width: 60px; height: 60px; font-size: 1.5rem; } }
+ </style>
+</head>
+<body>
+ <div class="container">
+ <header>
+ <h1>🦞 霸王龙虾</h1>
+ <div class="streak">🔥 连续 <span id="streakCount">0</span> 天</div>
+ </header>
+ <div class="mode-toggle">
+ <button class="mode-btn active" onclick="setMode('focus')">🎯 专注模式 (3件)</button>
+ <button class="mode-btn" onclick="setMode('all')">📋 全部任务</button>
+ </div>
+ <div class="pending-section">
+ <div class="pending-header">
+ <div class="pending-title">📝 待规划</div>
+ <div class="pending-count" id="pendingCount">0</div>
+ </div>
+ <div class="pending-hint">还没想好什么时候做？先丢这里</div>
+ <div class="task-list" id="pendingList"></div>
+ </div>
+ <div class="calendar">
+ <div class="calendar-header">
+ <button onclick="changeMonth(-1)">◀</button>
+ <span id="calendarTitle">2026年3月</span>
+ <button onclick="changeMonth(1)">▶</button>
+ </div>
+ <div class="calendar-grid" id="calendarGrid"></div>
+ </div>
+ <div class="section-title">📅 已规划任务</div>
+ <div class="task-list" id="taskList"></div>
+ <div class="empty-state" id="emptyState" style="display: none;"><p>🎉 所有任务都完成啦！</p></div>
+ </div>
+ <div class="add-task"><button class="add-btn" onclick="openModal()">+</button></div>
+ <div class="modal" id="addModal">
+ <div class="modal-content">
+ <h2>➕ 添加任务</h2>
+ <div class="form-group"><label>任务名称</label><input type="text" id="taskTitle" placeholder="要做什么？"></div>
+ <div class="form-group"><label>规划日期（留空=待规划）</label><input type="date" id="taskDate"></div>
+ <div class="form-group"><label>时间（可选）</label><input type="time" id="taskTime"></div>
+ <div class="form-actions"><button class="btn-cancel" onclick="closeModal()">取消</button><button class="btn-submit" onclick="addTask()">添加</button></div>
+ </div>
+ </div>
+ <div class="modal" id="scheduleModal">
+ <div class="modal-content">
+ <h2>📅 规划时间</h2>
+ <div class="form-group"><label>选择日期</label><input type="date" id="scheduleDate"></div>
+ <div class="form-group"><label>时间（可选）</label><input type="time" id="scheduleTime"></div>
+ <div class="form-actions"><button class="btn-cancel" onclick="closeScheduleModal()">取消</button><button class="btn-submit" onclick="confirmSchedule()">确认</button></div>
+ </div>
+ </div>
+ <script>
+ let tasks = JSON.parse(localStorage.getItem('lobster-tasks') || '[]');
+ let streak = parseInt(localStorage.getItem('lobster-streak') || '0');
+ let currentMode = 'focus';
+ let currentDate = new Date();
+ let currentScheduleTaskId = null;
+ document.addEventListener('DOMContentLoaded', () => { document.getElementById('taskDate').valueAsDate = new Date(); document.getElementById('streakCount').textContent = streak; renderTasks(); renderCalendar(); });
+ function setMode(mode) { currentMode = mode; document.querySelectorAll('.mode-btn').forEach(btn => { btn.classList.remove('active'); }); event.target.classList.add('active'); renderTasks(); }
+ function renderTasks() {
+ const pendingList = document.getElementById('pendingList');
+ const taskList = document.getElementById('taskList');
+ const emptyState = document.getElementById('emptyState');
+ const pendingCount = document.getElementById('pendingCount');
+ const pendingTasks = tasks.filter(t => t.status !== 'done' && (!t.date || t.date === ''));
+ const scheduledTasks = tasks.filter(t => t.status !== 'done' && t.date && t.date !== '');
+ pendingCount.textContent = pendingTasks.length;
+ if (pendingTasks.length === 0) { pendingList.innerHTML = '<div class="empty-state">暂无待规划任务</div>'; } else { pendingList.innerHTML = pendingTasks.map(task => renderTaskCard(task)).join(''); }
+ let displayTasks = scheduledTasks;
+ if (currentMode === 'focus') { displayTasks = displayTasks.slice(0, 3); }
+ if (displayTasks.length === 0 && pendingTasks.length === 0) { emptyState.style.display = 'block'; taskList.innerHTML = ''; } else { emptyState.style.display = 'none'; taskList.innerHTML = displayTasks.map(task => renderTaskCard(task)).join(''); }
+ }
+ function renderTaskCard(task) {
+ const dateDisplay = task.date ? formatDate(task.date) : '待规划';
+ const timeDisplay = task.time || '';
+ return `<div class="task-card"><div class="task-checkbox <equation>{task.status === 'done' ? 'checked' : ''}" onclick="toggleTask('</equation>{task.id}')"></div><div class="task-content"><div class="task-title">${task.title}</div><div class="task-time">${dateDisplay} <equation>{timeDisplay}</div></div><div class="task-actions"></equation>{!task.date ? '<button class="task-btn schedule" onclick="openScheduleModal(' + task.id + ')" title="规划时间">📅</button>' : ''}<button class="task-btn task-delete" onclick="deleteTask(' + task.id + ')" title="删除">🗑️</button></div></div>`;
+ }
+ function formatDate(dateStr) {
+ if (!dateStr) return '';
+ // 修复时区问题：手动解析 YYYY-MM-DD
+ const [year, month, day] = dateStr.split('-').map(Number);
+ const date = new Date(year, month - 1, day);
+ const today = new Date();
+ const tomorrow = new Date(today);
+ tomorrow.setDate(tomorrow.getDate() + 1);
+ // 使用本地时间比较
+ const dateOnly = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+ const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+ const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+ if (dateOnly === todayStr) return '今天';
+ if (dateOnly === tomorrowStr) return '明天';
+ return month + '月' + day + '日';
+ }
+ function toggleTask(id) {
+ const task = tasks.find(t => t.id === id);
+ if (task) { task.status = task.status === 'done' ? 'todo' : 'done'; if (task.status === 'done') { streak++; document.getElementById('streakCount').textContent = streak; localStorage.setItem('lobster-streak', streak.toString()); const checkbox = event.target; checkbox.classList.add('celebrate'); setTimeout(() => checkbox.classList.remove('celebrate'), 500); } saveTasks(); renderTasks(); renderCalendar(); }
+ }
+ function deleteTask(id) { tasks = tasks.filter(t => t.id !== id); saveTasks(); renderTasks(); renderCalendar(); }
+ function addTask() {
+ const title = document.getElementById('taskTitle').value.trim();
+ const date = document.getElementById('taskDate').value;
+ const time = document.getElementById('taskTime').value;
+ if (!title) { alert('请输入任务名称'); return; }
+ const task = { id: Date.now().toString(), title, date: date || '', time, status: 'todo', createdAt: new Date().toISOString() };
+ tasks.push(task); saveTasks(); closeModal(); renderTasks(); renderCalendar();
+ document.getElementById('taskTitle').value = ''; document.getElementById('taskTime').value = '';
+ }
+ function openScheduleModal(taskId) { currentScheduleTaskId = taskId; document.getElementById('scheduleDate').valueAsDate = new Date(); document.getElementById('scheduleModal').classList.add('show'); }
+ function closeScheduleModal() { document.getElementById('scheduleModal').classList.remove('show'); currentScheduleTaskId = null; }
+ function confirmSchedule() {
+ if (!currentScheduleTaskId) return;
+ const date = document.getElementById('scheduleDate').value;
+ const time = document.getElementById('scheduleTime').value;
+ const task = tasks.find(t => t.id === currentScheduleTaskId);
+ if (task) { task.date = date; task.time = time; saveTasks(); renderTasks(); renderCalendar(); }
+ closeScheduleModal();
+ }
+ function saveTasks() { localStorage.setItem('lobster-tasks', JSON.stringify(tasks)); }
+ function openModal() { document.getElementById('addModal').classList.add('show'); document.getElementById('taskTitle').focus(); }
+ function closeModal() { document.getElementById('addModal').classList.remove('show'); }
+ document.getElementById('addModal').addEventListener('click', (e) => { if (e.target.id === 'addModal') closeModal(); });
+ document.getElementById('scheduleModal').addEventListener('click', (e) => { if (e.target.id === 'scheduleModal') closeScheduleModal(); });
+ document.addEventListener('keydown', (e) => { if (e.key === 'n' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); openModal(); } if (e.key === 'Escape') { closeModal(); closeScheduleModal(); } });
+ function renderCalendar() {
+ const grid = document.getElementById('calendarGrid');
+ const title = document.getElementById('calendarTitle');
+ const year = currentDate.getFullYear();
+ const month = currentDate.getMonth();
+ title.textContent = year + '年' + (month + 1) + '月';
+ const firstDay = new Date(year, month, 1).getDay();
+ const daysInMonth = new Date(year, month + 1, 0).getDate();
+ const today = new Date();
+ let html = '';
+ ['日', '一', '二', '三', '四', '五', '六'].forEach(day => { html += '<div style="color: var(--text-dim); font-size: 0.8rem;">' + day + '</div>'; });
+ for (let i = 0; i < firstDay; i++) { html += '<div></div>'; }
+ for (let day = 1; day <= daysInMonth; day++) {
+ const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+ const hasTask = tasks.some(t => t.date === dateStr && t.status !== 'done');
+ const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+ html += '<div class="calendar-day ' + (hasTask ? 'has-task' : '') + ' ' + (isToday ? 'today' : '') + '">' + day + '</div>';
+ }
+ grid.innerHTML = html;
+ }
+ function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderCalendar(); }
+ </script>
+</body>
+</html>

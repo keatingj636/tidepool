@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+backend/adhd.db
+
+# Node / Expo
+frontend/node_modules/
+frontend/.expo/
+
+# Claude Code memory (internal notes)
+memory/

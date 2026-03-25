@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/pip freeze:*)",
+      "Bash(npm --version)",
+      "Bash(npx expo:*)"
+    ]
+  }
+}
