@@ -2,28 +2,30 @@
 // Keeps the same function signatures so App.js needs minimal changes.
 import * as SQLite from 'expo-sqlite';
 
-let db;
+let dbPromise;
 
-async function getDb() {
-  if (!db) {
-    db = await SQLite.openDatabaseAsync('adhd.db');
-    await db.execAsync(`
-      PRAGMA journal_mode = WAL;
-      CREATE TABLE IF NOT EXISTS tasks (
-        id      INTEGER PRIMARY KEY AUTOINCREMENT,
-        title   TEXT    NOT NULL,
-        status  TEXT    NOT NULL DEFAULT 'pending'
-      );
-      CREATE TABLE IF NOT EXISTS day_plan_entries (
-        id       INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_id  INTEGER NOT NULL,
-        date     TEXT    NOT NULL,
-        position INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (task_id) REFERENCES tasks(id)
-      );
-    `);
+function getDb() {
+  if (!dbPromise) {
+    dbPromise = SQLite.openDatabaseAsync('adhd.db').then(async (database) => {
+      await database.execAsync(`
+        PRAGMA journal_mode = WAL;
+        CREATE TABLE IF NOT EXISTS tasks (
+          id      INTEGER PRIMARY KEY AUTOINCREMENT,
+          title   TEXT    NOT NULL,
+          status  TEXT    NOT NULL DEFAULT 'pending'
+        );
+        CREATE TABLE IF NOT EXISTS day_plan_entries (
+          id       INTEGER PRIMARY KEY AUTOINCREMENT,
+          task_id  INTEGER NOT NULL,
+          date     TEXT    NOT NULL,
+          position INTEGER NOT NULL DEFAULT 0,
+          FOREIGN KEY (task_id) REFERENCES tasks(id)
+        );
+      `);
+      return database;
+    });
   }
-  return db;
+  return dbPromise;
 }
 
 function toDateStr(date) {
