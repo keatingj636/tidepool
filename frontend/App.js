@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   Modal, StyleSheet, ActivityIndicator, Alert,
-  KeyboardAvoidingView, Platform, SafeAreaView,
+  KeyboardAvoidingView, Platform, SafeAreaView, StatusBar,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { colors } from './src/theme';
@@ -11,7 +11,7 @@ import {
   fetchPool, fetchPlan,
   createTask, updateTaskStatus,
   addToPlan, removeFromPlan, closeDay,
-} from './src/api';
+} from './src/storage';
 
 // ── 工具函数 ────────────────────────────────────────────────────────────────
 
@@ -493,7 +493,7 @@ export default function App() {
 // ── 样式 ────────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe:              { flex: 1, backgroundColor: colors.bg },
+  safe:              { flex: 1, backgroundColor: colors.bg, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
   centered:          { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   loadingText:       { color: colors.textDim, marginTop: 12 },
   scroll:            { flex: 1 },
